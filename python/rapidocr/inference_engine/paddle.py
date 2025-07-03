@@ -132,7 +132,7 @@ class PaddleInferSession(InferSession):
             gpu_id = self.get_infer_gpuid()
             if gpu_id is None:
                 self.logger.warning(
-                    "GPU is not found in current device. Please check your device."
+                    "GPU is not found in current device by nvidia-smi. Please check your device or ignore it if run on jetson."
                 )
             device_id = cfg.engine_cfg.gpu_id
             infer_opts.enable_use_gpu(cfg.engine_cfg.gpu_mem, device_id)
@@ -153,7 +153,7 @@ class PaddleInferSession(InferSession):
             infer_opts.set_cpu_math_library_num_threads(infer_num_threads)
             self.logger.info(f"Set CPU math library threads to: {infer_num_threads}")
 
-        # 内存优化和日志设置
+        # enable memory optim
         infer_opts.enable_memory_optim()
         infer_opts.disable_glog_info()
         infer_opts.delete_pass("conv_transpose_eltwiseadd_bn_fuse_pass")
@@ -170,7 +170,7 @@ class PaddleInferSession(InferSession):
             gpu_id = self.get_infer_gpuid()
             if gpu_id is None:
                 self.logger.warning(
-                    "GPU is not found in current device. Please check your device."
+                    "GPU is not found in current device by nvidia-smi. Please check your device or ignore it if run on jetson."
                 )
             device_id = cfg.engine_cfg.gpu_id
             infer_opts.enable_use_gpu(cfg.engine_cfg.gpu_mem, device_id)
