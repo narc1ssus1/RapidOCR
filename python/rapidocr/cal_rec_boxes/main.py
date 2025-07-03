@@ -23,11 +23,7 @@ class CalRecBoxes:
     代码借鉴自PaddlePaddle/PaddleOCR和fanqie03/char-detection"""
 
     def __call__(
-        self,
-        imgs: List[np.ndarray],
-        dt_boxes: List[np.ndarray],
-        rec_res: TextRecOutput,
-        return_single_char_box: bool = False,
+        self, imgs: List[np.ndarray], dt_boxes: List[np.ndarray], rec_res: TextRecOutput
     ) -> TextRecOutput:
         word_results = []
         for idx, (img, box) in enumerate(zip(imgs, dt_boxes)):
@@ -37,17 +33,14 @@ class CalRecBoxes:
             h, w = img.shape[:2]
             img_box = np.array([[0, 0], [w, 0], [w, h], [0, h]])
             word_box_content_list, word_box_list, conf_list = self.cal_ocr_word_box(
-                rec_res.txts[idx],
-                img_box,
-                rec_res.word_results[idx],
-                return_single_char_box,
+                rec_res.txts[idx], img_box, rec_res.word_results[idx]
             )
             word_box_list = self.adjust_box_overlap(copy.deepcopy(word_box_list))
             direction = self.get_box_direction(box)
             word_box_list = self.reverse_rotate_crop_image(
                 copy.deepcopy(box), word_box_list, direction
             )
-            word_results.append(
+            word_results.extend(
                 list(zip(word_box_content_list, conf_list, word_box_list))
             )
 
@@ -74,11 +67,7 @@ class CalRecBoxes:
         return Direction.VERTICAL if aspect_ratio >= 1.5 else Direction.HORIZONTAL
 
     def cal_ocr_word_box(
-        self,
-        rec_txt: str,
-        bbox: np.ndarray,
-        word_info: WordInfo,
-        return_single_char_box: bool = False,
+        self, rec_txt: str, bbox: np.ndarray, word_info: WordInfo
     ) -> Tuple[List[str], List[List[List[float]]], List[float]]:
         """Calculate the detection frame for each word based on the results of recognition and detection of ocr
         汉字坐标是单字的
@@ -90,7 +79,6 @@ class CalRecBoxes:
         """
         if not rec_txt or word_info.line_txt_len == 0:
             return [], [], []
-
         bbox_points = quads_to_rect_bbox(bbox[None, ...])
         avg_col_width = (bbox_points[2] - bbox_points[0]) / word_info.line_txt_len
 
@@ -98,7 +86,7 @@ class CalRecBoxes:
 
         line_cols, char_widths, word_contents = [], [], []
         for word, word_col in zip(word_info.words, word_info.word_cols):
-            if is_all_en_num and not return_single_char_box:
+            if is_all_en_num:
                 line_cols.append(word_col)
                 word_contents.append("".join(word))
             else:
@@ -115,7 +103,7 @@ class CalRecBoxes:
             char_widths, bbox_points[0], bbox_points[2], len(rec_txt)
         )
 
-        if is_all_en_num and not return_single_char_box:
+        if is_all_en_num:
             word_boxes = self.calc_en_num_box(
                 line_cols, avg_char_width, avg_col_width, bbox_points
             )
@@ -178,10 +166,8 @@ class CalRecBoxes:
     ) -> float:
         if txt_len == 0:
             return 0.0
-
         if len(width_list) > 0:
             return sum(width_list) / len(width_list)
-
         return (bbox_x1 - bbox_x0) / txt_len
 
     @staticmethod
