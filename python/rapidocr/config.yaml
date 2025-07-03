@@ -47,12 +47,40 @@ EngineConfig:
         inference_num_threads: -1
 
     paddle:
-        cpu_math_library_num_threads: -1
+        # ascend npu配置
         use_npu: false
         npu_id: 0
+
+        # xpu配置
+        use_xpu: false
+        xpu_id: 0
+
+        # mlu配置
+        use_mlu: false
+        mlu_id: 0
+
+        # dcu配置
+        use_dcu: false
+        dcu_id: 0
+
+        # gcu配置
+        use_gcu: false
+        gcu_id: 0
+
+        # gpu配置
         use_cuda: false
         gpu_id: 0
         gpu_mem: 500
+         # 高级配置 (可选)
+        gpu_envs:
+            FLAGS_conv_workspace_size_limit: "2000"
+            FLAGS_cudnn_exhaustive_search: "1"
+
+
+        cpu_math_library_num_threads: -1
+        cpu_envs:
+            OMP_NUM_THREADS: "4"
+            KMP_BLOCKTIME: "1"
 
     torch:
         use_cuda: false

@@ -40,11 +40,19 @@ class PaddleInferSession(InferSession):
                 self.logger.debug(f"{key} has been set to {val}.")
 
         if engine_cfg.get("use_cuda", False):
-            envs = {}
+            envs = {
+                "FLAGS_conv_workspace_size_limit": "2000",  # 增加卷积工作空间大小限制
+                "FLAGS_cudnn_exhaustive_search": "1",  # 启用cuDNN穷举搜索
+                "FLAGS_cudnn_batchnorm_spatial_persistent": "1"  # 优化批归一化性能
+            }
             _set_envs(envs)
 
         elif not any([engine_cfg.get(f"use_{dev}", False) for dev in ["cuda", "npu", "xpu", "mlu", "dcu", "gcu"]]):
-            envs = {}
+            envs = {
+                "OMP_NUM_THREADS": str(os.cpu_count() // 2),  # 设置OpenMP线程数
+                "KMP_BLOCKTIME": "1",  # 减少线程阻塞时间
+                "KMP_AFFINITY": "granularity=fine,compact,1,0"  # 优化线程亲和性
+            }
             _set_envs(envs)
 
         # NPU 环境变量
@@ -57,6 +65,31 @@ class PaddleInferSession(InferSession):
                 "FLAGS_npu_scale_aclnn": "True",
                 "FLAGS_npu_split_aclnn": "True",
             }
+            _set_envs(envs)
+
+        # XPU 环境变量
+        elif engine_cfg.get("use_xpu", False):
+            envs = {
+                "BKCL_FORCE_SYNC": "1",
+                "BKCL_TIMEOUT": "1800",
+                "FLAGS_use_stride_kernel": "0",
+                "XPU_BLACK_LIST": "pad3d",
+            }
+            _set_envs(envs)
+
+        # MLU 环境变量
+        elif engine_cfg.get("use_mlu", False):
+            envs = {"FLAGS_use_stride_kernel": "0"}
+            _set_envs(envs)
+
+        # DCU 环境变量
+        elif engine_cfg.get("use_dcu", False):
+            envs = {"FLAGS_conv_workspace_size_limit": "2000"}
+            _set_envs(envs)
+
+        # GCU 环境变量
+        elif engine_cfg.get("use_gcu", False):
+            envs = {"FLAGS_use_stride_kernel": "0"}
             _set_envs(envs)
 
     def _setup_model(self, cfg) -> Tuple[Path, Path]:
@@ -143,6 +176,26 @@ class PaddleInferSession(InferSession):
             infer_opts.enable_custom_device("npu", npu_id)
             self.logger.info(f"Using NPU device with ID: {npu_id}")
 
+        elif cfg.engine_cfg.use_xpu:
+            xpu_id = cfg.engine_cfg.get("xpu_id", 0)
+            infer_opts.enable_xpu(xpu_id)
+            self.logger.info(f"Using XPU device with ID: {xpu_id}")
+
+        elif cfg.engine_cfg.use_mlu:
+            mlu_id = cfg.engine_cfg.get("mlu_id", 0)
+            infer_opts.enable_mlu(mlu_id)
+            self.logger.info(f"Using MLU device with ID: {mlu_id}")
+
+        elif cfg.engine_cfg.use_dcu:
+            dcu_id = cfg.engine_cfg.get("dcu_id", 0)
+            infer_opts.enable_rocm(dcu_id)
+            self.logger.info(f"Using DCU device with ID: {dcu_id}")
+
+        elif cfg.engine_cfg.use_gcu:
+            gcu_id = cfg.engine_cfg.get("gcu_id", 0)
+            infer_opts.enable_custom_device("gcu", gcu_id)
+            self.logger.info(f"Using GCU device with ID: {gcu_id}")
+
         else:  # CPU
             infer_opts.disable_gpu()
             self.logger.info("Using CPU device")
@@ -180,6 +233,26 @@ class PaddleInferSession(InferSession):
             npu_id = cfg.engine_cfg.get("npu_id", 0)
             infer_opts.enable_custom_device("npu", npu_id)
             self.logger.info(f"Using NPU device with ID: {npu_id}")
+
+        elif cfg.engine_cfg.use_xpu:
+            xpu_id = cfg.engine_cfg.get("xpu_id", 0)
+            infer_opts.enable_xpu(xpu_id)
+            self.logger.info(f"Using XPU device with ID: {xpu_id}")
+
+        elif cfg.engine_cfg.use_mlu:
+            mlu_id = cfg.engine_cfg.get("mlu_id", 0)
+            infer_opts.enable_mlu(mlu_id)
+            self.logger.info(f"Using MLU device with ID: {mlu_id}")
+
+        elif cfg.engine_cfg.use_dcu:
+            dcu_id = cfg.engine_cfg.get("dcu_id", 0)
+            infer_opts.enable_rocm(dcu_id)
+            self.logger.info(f"Using DCU device with ID: {dcu_id}")
+
+        elif cfg.engine_cfg.use_gcu:
+            gcu_id = cfg.engine_cfg.get("gcu_id", 0)
+            infer_opts.enable_custom_device("gcu", gcu_id)
+            self.logger.info(f"Using GCU device with ID: {gcu_id}")
 
         else:  # CPU
             infer_opts.disable_gpu()
